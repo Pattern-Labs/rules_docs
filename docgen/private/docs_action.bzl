@@ -25,6 +25,36 @@ def _join_path(current, new_path):
     else:
         return current + "/" + new_path
 
+def _prefix_subnav(subnav, prefix):
+    """Prefix file paths in a subnav list with a path prefix.
+
+    When a docs_index from a different package is referenced, its nav entries
+    use package-relative paths (e.g. "file.md"). But copy_to_directory preserves
+    the full repo-relative path for cross-package files. This function aligns
+    nav paths with where the files actually land.
+
+    Args:
+        subnav: A list of nav element dicts (e.g. [{"Title": "path.md"}, ...]).
+        prefix: The path prefix to prepend to each file path.
+
+    Returns:
+        A new subnav list with prefixed paths.
+    """
+    if not prefix:
+        return subnav
+    result = []
+    for item in subnav:
+        new_item = {}
+        for title, path_or_list in item.items():
+            if type(path_or_list) == "list":
+                new_item[title] = _prefix_subnav(path_or_list, prefix)
+            elif type(path_or_list) == "string" and not path_or_list.startswith("http"):
+                new_item[title] = _join_path(prefix, path_or_list)
+            else:
+                new_item[title] = path_or_list
+        result.append(new_item)
+    return result
+
 def docs_action_impl(ctx):
     """Implementation function for docs_action rule.
 
@@ -74,12 +104,17 @@ def docs_action_impl(ctx):
 
             if (nav_repo_name != repo_name):
                 _subpath = _subpath or nav_repo_name
+            elif not _subpath and key.label.package != ctx.label.package:
+                # Same repo, different package. copy_to_directory preserves the
+                # full repo-relative path for cross-package files, so nav entries
+                # must use the same path prefix to match.
+                _subpath = key.label.package
 
             _entrypoint = key[DocsProviderInfo].entrypoint
             _subnav = key[DocsProviderInfo].nav
 
             if (len(_subnav) > 0):
-                subnav = _subnav
+                subnav = _prefix_subnav(_subnav, _subpath) if _subpath else _subnav
 
             if (_entrypoint):
                 entrypoint = _entrypoint
