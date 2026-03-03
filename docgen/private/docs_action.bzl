@@ -3,6 +3,7 @@
 load("@bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory_bin_action")
 load("@bazel_lib//lib:paths.bzl", "to_repository_relative_path")
 load(":providers.bzl", "DocsLinkInfo", "DocsProviderInfo")
+load(":utils.bzl", "to_package_relative_path")
 
 def _correct_repo_name(name):
     """Corrects the repository name by replacing '+' with ''.
@@ -45,7 +46,7 @@ def docs_action_impl(ctx):
     files = [ctx.file.entrypoint] if ctx.file.entrypoint else []
     files += ctx.files.srcs + ctx.files.data
 
-    entrypoint_file_path = to_repository_relative_path(ctx.file.entrypoint) if ctx.file.entrypoint else None
+    entrypoint_file_path = to_package_relative_path(ctx.file.entrypoint) if ctx.file.entrypoint else None
 
     resolved_nav = []
     repo_name = _correct_repo_name(ctx.label.repo_name)
@@ -88,7 +89,7 @@ def docs_action_impl(ctx):
             entrypoint = key[DocsLinkInfo].url if key[DocsLinkInfo].url != "" else key[DocsLinkInfo].entrypoint if key[DocsLinkInfo].entrypoint != "" else key.label.name
         else:
             title = value if value and value != "" else key.label.name
-            entrypoint = to_repository_relative_path(key.files.to_list()[0])
+            entrypoint = to_package_relative_path(key.files.to_list()[0])
         subpath = _join_path(path or repo_name, _subpath)
 
         if (entrypoint):

@@ -1,6 +1,6 @@
 """Rules for serving MkDocs documentation sites locally."""
 
-load(":utils.bzl", "collect_inputs")
+load(":utils.bzl", "collect_inputs", "to_package_relative_path")
 
 def _mkdocs_serve_impl(ctx):
     mkdocs_bin = ctx.executable.mkdocs_executable
@@ -19,7 +19,7 @@ def _mkdocs_serve_impl(ctx):
         content = "\n".join([
             "#!/bin/bash",
             "set -e",
-            "./{mkdocs} serve -f {config}".format(mkdocs = mkdocs_bin.short_path, config = docs_folder.short_path + "/" + ctx.file.config.short_path),
+            "./{mkdocs} serve -f {config}".format(mkdocs = mkdocs_bin.short_path, config = docs_folder.short_path + "/" + to_package_relative_path(ctx.file.config)),
         ]),
         is_executable = True,
     )
